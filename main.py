@@ -33,6 +33,15 @@ async def on_ready():
     print('Score Saver is online and ready')
     print('Waiting for someone to call...')
     print('------')
+    
+    if os.path.exists("last_channel.txt"):
+        with open("last_channel.txt", "r") as f:
+            channel_id = f.read().strip()
+            if channel_id:
+                channel = bot.get_channel(int(channel_id))
+                if channel:
+                    await channel.connect()
+                    print("النبطشي رجع الوردية بعد الريستارت أوتوماتيك")
 
 @bot.command()
 async def join(ctx):
@@ -45,7 +54,11 @@ async def join(ctx):
         else:
             await channel.connect()
             
-        await ctx.send(f'النبطشي حضر اسكورك امانه معايا')
+        # بيكتب رقم الروم في النوتة عشان يرجع لها لو السيرفر فصل
+        with open("last_channel.txt", "w") as f:
+            f.write(str(channel.id))
+            
+        await ctx.send('النبطشي حضر اسكورك امانه معايا ومش همشي لوحدي تاني')
     else:
         await ctx.send('ناديني جوه الفويس تشانل يسطا')
 
@@ -55,6 +68,11 @@ async def leave(ctx):
     
     if voice_client and voice_client.is_connected():
         await voice_client.disconnect()
+        
+        # بيقطع النوتة عشان ميدخلش لوحده تاني أبداً إلا لما تناديه
+        if os.path.exists("last_channel.txt"):
+            os.remove("last_channel.txt")
+            
         await ctx.send('استاذن انا بقى')
     else:
         await ctx.send('انت بتطردني منين يسطا انا مفيش')
