@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from flask import Flask
 from threading import Thread
 import os
@@ -8,7 +8,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "النبطشي استلم الشيفت يا رياسه"
+    return "النبطشي استلم الشيفت يا رياسه ومستعد للخدمة الشاقة!"
 
 def run():
     app.run(host='0.0.0.0', port=7860)
@@ -27,22 +27,28 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-@bot.event
-async def on_ready():
-    print(f'Logged in as {bot.user.name}')
-    print('Score Saver is online and ready')
-    print('Waiting for someone to call...')
-    print('------')
-    
+@tasks.loop(seconds=30)
+async def check_voice_channel():
     if os.path.exists("last_channel.txt"):
         with open("last_channel.txt", "r") as f:
             channel_id = f.read().strip()
             if channel_id:
-                channel = bot.get_channel(int(channel_id))
-                if channel:
-                    await channel.connect()
-                    print("النبطشي رجع الوردية بعد الريستارت أوتوماتيك")
+                for guild in bot.guilds:
+                    voice_client = discord.utils.get(bot.voice_clients, guild=guild)
+                    if not voice_client or not voice_client.is_connected():
+                        channel = bot.get_channel(int(channel_id))
+                        if channel:
+                            try:
+                                await channel.connect()
+                                print("النبطشي صلح وضعه ودخل الروم أوتوماتيك!")
+                            except:
+                                pass
 
+@bot.event
+async def on_ready():
+    print(f'Logged in as {bot.user.name}')
+    print('Score Saver is online and ready')
+    check_voice_channel.start()
 @bot.command()
 async def join(ctx):
     if ctx.author.voice:
@@ -54,11 +60,10 @@ async def join(ctx):
         else:
             await channel.connect()
             
-        # بيكتب رقم الروم في النوتة عشان يرجع لها لو السيرفر فصل
         with open("last_channel.txt", "w") as f:
             f.write(str(channel.id))
             
-        await ctx.send('النبطشي حضر اسكورك امانه معايا ومش همشي لوحدي تاني')
+        await ctx.send('النبطشي حضر اسكورك امانه معايا')
     else:
         await ctx.send('ناديني جوه الفويس تشانل يسطا')
 
@@ -69,7 +74,6 @@ async def leave(ctx):
     if voice_client and voice_client.is_connected():
         await voice_client.disconnect()
         
-        # بيقطع النوتة عشان ميدخلش لوحده تاني أبداً إلا لما تناديه
         if os.path.exists("last_channel.txt"):
             os.remove("last_channel.txt")
             
